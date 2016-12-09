@@ -22,7 +22,7 @@ namespace tensorflow {
 namespace port {
 
 // TODO(jeff,sanjay): Make portable
-static const bool kLittleEndian = true;
+constexpr bool kLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 
 // TODO(jeff,sanjay): Find appropriate places for all the code below.
 // Possible places for any particular item below:
