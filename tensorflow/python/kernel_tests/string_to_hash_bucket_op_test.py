@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
+import sys
 
 class StringToHashBucketOpTest(tf.test.TestCase):
 
@@ -83,7 +83,10 @@ class StringToHashBucketOpTest(tf.test.TestCase):
       # StrongKeyedHash(key, 'a') -> 7157389809176466784 -> mod 10 -> 4
       # StrongKeyedHash(key, 'b') -> 15805638358933211562 -> mod 10 -> 2
       # StrongKeyedHash(key, 'c') -> 18100027895074076528 -> mod 10 -> 8
-      self.assertAllEqual([4, 2, 8], output.eval())
+      if sys.byteorder == "big":
+        self.assertAllEqual([3, 5, 7], output.eval())
+      else:  
+        self.assertAllEqual([4, 2, 8], output.eval())
 
   def testStringToHashBucketsStrongInvalidKey(self):
     with self.test_session():
