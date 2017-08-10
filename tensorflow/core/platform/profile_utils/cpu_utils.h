@@ -100,7 +100,7 @@ class CpuUtils {
   #if defined(__powerpc__) || defined(__ppc__) && ( __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
      static uint64 GetCycleCounterFrequency();
   #elif defined(__s390x__)
-    static uint64 GetCycleCounterFrequency();
+     static uint64 GetCycleCounterFrequency();
   #else
      static int64 GetCycleCounterFrequency();
   #endif
