@@ -31,6 +31,9 @@ limitations under the License.
 
 namespace tensorflow {
 namespace tfprof {
+//TODO: Add serialization for saved/restore model for architecture specific execution.
+//For now, disabled test on big endian architecture.
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 class TFProfShowTest : public ::testing::Test {
  protected:
   TFProfShowTest() {
@@ -182,5 +185,7 @@ TEST_F(TFProfShowTest, DumpOpMode) {
       "\texec_time:0us\n\n",
       StringReplace(dump_str, " ", ""));
 }
+
+#endif
 }  // namespace tfprof
 }  // namespace tensorflow

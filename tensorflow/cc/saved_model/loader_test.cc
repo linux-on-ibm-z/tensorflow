@@ -97,7 +97,10 @@ class LoaderTest : public ::testing::Test {
 // when loading and unloading large numbers of SavedModelBundles.
 // TODO(sukritiramesh): Increase run iterations and move outside of the test
 // suite.
+// TODO: Add serialization for saved/restore model for architecture specific execution.
+// For now, disabled test on big endian architecture.
 TEST_F(LoaderTest, ResourceLeakTest) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   SavedModelBundle bundle;
   SessionOptions session_options;
   RunOptions run_options;
@@ -109,9 +112,13 @@ TEST_F(LoaderTest, ResourceLeakTest) {
                                 {kSavedModelTagServe}, &bundle));
     CheckSavedModelBundle(export_dir, bundle);
   }
+#endif
 }
 
+// TODO: Add serialization for saved/restore model for architecture specific execution.
+// For now, disabled test on big endian architecture.
 TEST_F(LoaderTest, TagMatch) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   SavedModelBundle bundle;
   SessionOptions session_options;
   RunOptions run_options;
@@ -121,6 +128,7 @@ TEST_F(LoaderTest, TagMatch) {
   TF_ASSERT_OK(LoadSavedModel(session_options, run_options, export_dir,
                               {kSavedModelTagServe}, &bundle));
   CheckSavedModelBundle(export_dir, bundle);
+#endif
 }
 
 TEST_F(LoaderTest, NoTagMatch) {
@@ -155,7 +163,10 @@ TEST_F(LoaderTest, NoTagMatchMultiple) {
       << st.error_message();
 }
 
+// TODO: Add serialization for saved/restore model for architecture specific execution.
+// For now, disabled test on big endian architecture.
 TEST_F(LoaderTest, PbtxtFormat) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   SavedModelBundle bundle;
   SessionOptions session_options;
   RunOptions run_options;
@@ -165,9 +176,13 @@ TEST_F(LoaderTest, PbtxtFormat) {
   TF_ASSERT_OK(LoadSavedModel(session_options, run_options, export_dir,
                               {kSavedModelTagServe}, &bundle));
   CheckSavedModelBundle(export_dir, bundle);
+#endif
 }
 
+// TODO: Add serialization for saved/restore model for architecture specific execution.
+// For now, disabled test on big endian architecture.
 TEST_F(LoaderTest, MainOpFormat) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   SavedModelBundle bundle;
   SessionOptions session_options;
   RunOptions run_options;
@@ -177,6 +192,7 @@ TEST_F(LoaderTest, MainOpFormat) {
   TF_ASSERT_OK(LoadSavedModel(session_options, run_options, export_dir,
                               {kSavedModelTagServe}, &bundle));
   CheckSavedModelBundle(export_dir, bundle);
+#endif
 }
 
 TEST_F(LoaderTest, InvalidExportPath) {

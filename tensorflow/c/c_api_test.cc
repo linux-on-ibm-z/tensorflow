@@ -1006,6 +1006,11 @@ TEST_F(CApiColocationTest, ClearViaProto) {
 }
 
 TEST(CAPI, SavedModel) {
+
+//TODO: Add serialization for saved/restore model for architecture specific execution.
+//For now, disabled test on big endian architecture.
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   // Load the saved model.
   const char kSavedModel[] = "cc/saved_model/testdata/half_plus_two/00000123";
   const string saved_model_dir = tensorflow::io::JoinPath(
@@ -1079,9 +1084,15 @@ TEST(CAPI, SavedModel) {
   EXPECT_EQ(TF_OK, TF_GetCode(s)) << TF_Message(s);
   TF_DeleteGraph(graph);
   TF_DeleteStatus(s);
+#endif
 }
 
 TEST(CAPI, SavedModelNullArgsAreValid) {
+
+//TODO: Add serialization for saved/restore model for architecture specific execution.
+//For now, disabled test on big endian architecture.
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   const char kSavedModel[] = "cc/saved_model/testdata/half_plus_two/00000123";
   const string saved_model_dir = tensorflow::io::JoinPath(
       tensorflow::testing::TensorFlowSrcRoot(), kSavedModel);
@@ -1100,6 +1111,7 @@ TEST(CAPI, SavedModelNullArgsAreValid) {
   EXPECT_EQ(TF_OK, TF_GetCode(s)) << TF_Message(s);
   TF_DeleteGraph(graph);
   TF_DeleteStatus(s);
+#endif
 }
 
 REGISTER_OP("TestOpWithNoGradient")

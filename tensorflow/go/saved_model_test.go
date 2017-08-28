@@ -17,8 +17,12 @@ limitations under the License.
 package tensorflow
 
 import "testing"
+import "runtime"
 
 func TestSavedModel(t *testing.T) {
+//TODO: Add serialization for saved/restore model for architecture specific execution.
+//For now, disabled test on big endian architecture.
+if ( runtime.GOARCH != "s390x" ) {
 	bundle, err := LoadSavedModel("../cc/saved_model/testdata/half_plus_two/00000123", []string{"serve"}, nil)
 	if err != nil {
 		t.Fatalf("LoadSavedModel(): %v", err)
@@ -28,4 +32,5 @@ func TestSavedModel(t *testing.T) {
 	}
 	// TODO(jhseu): half_plus_two has a tf.Example proto dependency to run. Add a
 	// more thorough test when the generated protobufs are available.
+}
 }
