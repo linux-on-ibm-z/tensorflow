@@ -2271,7 +2271,7 @@ TEST_F(GraphConstructorTest, GraphDefVersionMergingDuringImport) {
   EXPECT_EQ(3, graph_.versions().bad_consumers(2));
 }
 
-T_F(GraphConstructorTest, ImportGraphDefProvidedShapeRefinerVersions) {
+TEST_F(GraphConstructorTest, ImportGraphDefProvidedShapeRefinerVersions) {
   ImportGraphDefOptions opts;
   // A valid graph at producer version 20, but one
   // that would not import if the graph_def_version were 21.
