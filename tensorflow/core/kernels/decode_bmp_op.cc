@@ -56,14 +56,26 @@ class DecodeBmpOp : public OpKernel {
                                         input.size(), " bytes"));
 
     const uint8* img_bytes = reinterpret_cast<const uint8*>(input.data());
-    const int32 header_size = internal::SubtleMustCopy(
+    int32 header_size_ = internal::SubtleMustCopy(
         *(reinterpret_cast<const int32*>(img_bytes + 10)));
-    const int32 width = internal::SubtleMustCopy(
+    int32 width_ = internal::SubtleMustCopy(
         *(reinterpret_cast<const int32*>(img_bytes + 18)));
-    const int32 height = internal::SubtleMustCopy(
+    int32 height_ = internal::SubtleMustCopy(
         *(reinterpret_cast<const int32*>(img_bytes + 22)));
-    const int32 bpp = internal::SubtleMustCopy(
+    int32 bpp_ = internal::SubtleMustCopy(
         *(reinterpret_cast<const int32*>(img_bytes + 28)));
+
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+    const int32 header_size = le32toh(header_size_);
+    const int32 width = le32toh(width_);
+    const int32 height = le32toh(height_);
+    const int32 bpp = le32toh(bpp_);
+#else
+    const int32 header_size = header_size_;
+    const int32 width = width_;
+    const int32 height = height_;
+    const int32 bpp = bpp_;
+#endif
 
     if (channels_) {
       OP_REQUIRES(context, (channels_ == bpp / 8),
