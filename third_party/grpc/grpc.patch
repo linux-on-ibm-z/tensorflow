@@ -1,3 +1,26 @@
+diff --git a/src/core/lib/iomgr/tcp_server_utils_posix_common.c b/src/core/lib/iomgr/tcp_server_utils_posix_common.c
+index dbb4318..7e83a3d 100644
+--- a/src/core/lib/iomgr/tcp_server_utils_posix_common.c
++++ b/src/core/lib/iomgr/tcp_server_utils_posix_common.c
+@@ -179,14 +179,16 @@ grpc_error *grpc_tcp_server_prepare_socket(int fd,
+     goto error;
+   }
+
+-  sockname_temp.len = sizeof(struct sockaddr_storage);
++  socklen_t sock_len;
++  sock_len = sizeof(struct sockaddr_storage);
+
+   if (getsockname(fd, (struct sockaddr *)sockname_temp.addr,
+-                  (socklen_t *)&sockname_temp.len) < 0) {
++                       &sock_len)) {
+     err = GRPC_OS_ERROR(errno, "getsockname");
+     goto error;
+   }
+
++  sockname_temp.len = sock_len;
+   *port = grpc_sockaddr_get_port(&sockname_temp);
+   return GRPC_ERROR_NONE;
+
 diff --git a/BUILD b/BUILD
 index 6552d5879e..59adb1ce1c 100644
 --- a/BUILD
