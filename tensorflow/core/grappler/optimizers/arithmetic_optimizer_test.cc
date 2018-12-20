@@ -581,8 +581,13 @@ TEST_F(ArithmeticOptimizerTest, TrivialSumsSimple) {
   const NodeDef* new_const = node_map.GetNode(optimized_const_name);
   ASSERT_NE(new_const, nullptr);
   EXPECT_EQ("^x", new_const->input(0));
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  EXPECT_EQ(std::string("@\0\0\0", 4),
+            new_const->attr().at("value").tensor().tensor_content());
+#else
   EXPECT_EQ(string("\0\0\0@", 4),
             new_const->attr().at("value").tensor().tensor_content());
+#endif
 
   const NodeDef* new_mul = node_map.GetNode(optimized_mul_name);
   ASSERT_NE(new_mul, nullptr);
@@ -625,8 +630,13 @@ TEST_F(ArithmeticOptimizerTest, TrivialSumsSimpleWithControlDep) {
   const NodeDef* new_const = node_map.GetNode(optimized_const_name);
   ASSERT_NE(new_const, nullptr);
   EXPECT_EQ("^x", new_const->input(0));
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  EXPECT_EQ(std::string("@\0\0\0", 4),
+            new_const->attr().at("value").tensor().tensor_content());
+#else
   EXPECT_EQ(string("\0\0\0@", 4),
             new_const->attr().at("value").tensor().tensor_content());
+#endif
 
   const NodeDef* new_mul = node_map.GetNode(optimized_mul_name);
   ASSERT_NE(new_mul, nullptr);
