@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import platform
 
 from tensorflow.python.tools import component_api_helper
 component_api_helper.package_hook(
@@ -34,7 +35,7 @@ from tensorflow.contrib import autograph
 from tensorflow.contrib import batching
 from tensorflow.contrib import bayesflow
 from tensorflow.contrib import checkpoint
-if os.name != "nt":
+if os.name != "nt" and platform.machine() != "s390x":
   from tensorflow.contrib import cloud
 from tensorflow.contrib import cluster_resolver
 from tensorflow.contrib import coder
