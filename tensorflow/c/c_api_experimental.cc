@@ -295,6 +295,7 @@ library {
   }
 }
 )PREFIX";
+#endif
 
   *dataset_name = "_make_dataset_d8de2712";
   auto functions = CreateFunctionsFromTextProto(
