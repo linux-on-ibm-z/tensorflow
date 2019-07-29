@@ -416,6 +416,7 @@ class OpDefLibrary(object):
         input_name = input_arg.name
         if input_name in keywords:
           values = keywords.pop(input_name)
+          # Cast `values` array to int32 for op_type is ConcatV2 if machine is big endian
           if (sys.byteorder == "big"):
               if (op_type_name == "ConcatV2" and input_name == 'axis' and
                       isinstance(values, ops.Tensor) and values.dtype == dtypes.int64):
