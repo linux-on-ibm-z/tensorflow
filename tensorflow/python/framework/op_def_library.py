@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import six
+import sys
 
 from tensorflow.core.framework import attr_value_pb2
 from tensorflow.core.framework import op_def_pb2
@@ -32,7 +33,7 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.util import compat
 from tensorflow.python.util import tf_contextlib
-
+from tensorflow.python.ops import math_ops
 
 def _Attr(op_def, name):
   for attr in op_def.attr:
@@ -415,6 +416,10 @@ class OpDefLibrary(object):
         input_name = input_arg.name
         if input_name in keywords:
           values = keywords.pop(input_name)
+          if (sys.byteorder == "big"):
+              if (op_type_name == "ConcatV2" and input_name == 'axis' and
+                      isinstance(values, ops.Tensor) and values.dtype == dtypes.int64):
+                  values = math_ops.cast(values, dtypes.int32)
         elif input_name + "_" in keywords:
           # Handle the case where the name is a keyword or built-in
           # for Python so we use the name + _ instead.
