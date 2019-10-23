@@ -87,16 +87,31 @@ class DecodeRawOp : public OpKernel {
     } else {
       // Otherwise, the data is not in the host's byte order, and rather than a
       // direct copy, we need to reverse the byte ordering of each element.
-      for (int64 i = 0; i < flat_in.size(); ++i) {
-        const char* in_data_bytes =
-            reinterpret_cast<const char*>(flat_in(i).data());
-        char* out_data_bytes = reinterpret_cast<char*>(out_data);
-        const char* p = in_data_bytes;
-        char* q = out_data_bytes;
-        for (; p < in_data_bytes + str_size; p += sizeof(T), q += sizeof(T)) {
-          std::reverse_copy(p, p + sizeof(T), q);
+      if (DataTypeString(out_type_) == "complex64" || DataTypeString(out_type_) == "complex128") {
+        // For Complex data type, real and imaginary parts needs to be swapped separately
+        for (int64 i = 0; i < flat_in.size(); ++i) {
+          const char* in_data_bytes =
+              reinterpret_cast<const char*>(flat_in(i).data());
+          char* out_data_bytes = reinterpret_cast<char*>(out_data);
+          const char* p = in_data_bytes;
+          char* q = out_data_bytes;
+          for (; p < in_data_bytes + str_size; p += (sizeof(T))/2, q += (sizeof(T))/2) {
+            std::reverse_copy(p, p + (sizeof(T))/2, q);
+          }
+          out_data += added_dim;
         }
-        out_data += added_dim;
+      } else {
+        for (int64 i = 0; i < flat_in.size(); ++i) {
+          const char* in_data_bytes =
+              reinterpret_cast<const char*>(flat_in(i).data());
+          char* out_data_bytes = reinterpret_cast<char*>(out_data);
+          const char* p = in_data_bytes;
+          char* q = out_data_bytes;
+          for (; p < in_data_bytes + str_size; p += sizeof(T), q += sizeof(T)) {
+            std::reverse_copy(p, p + sizeof(T), q);
+          }
+          out_data += added_dim;
+        }
       }
     }
   }
