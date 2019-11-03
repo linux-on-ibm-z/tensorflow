@@ -1592,6 +1592,7 @@ filegroup(
     name = "meta_graph_testdata",
     srcs = [
         "framework/testdata/metrics_export_meta_graph.pb",
+        "framework/testdata/metrics_export_meta_graph_be.pb",
     ],
     visibility = ["//visibility:public"],
 )
