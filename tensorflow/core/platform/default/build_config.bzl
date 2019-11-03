@@ -693,7 +693,6 @@ def tf_additional_cloud_op_deps():
     return select({
         "//tensorflow:android": [],
         "//tensorflow:ios": [],
-        "//tensorflow:linux_s390x": [],
         "//tensorflow:windows": [],
         "//tensorflow:api_version_2": [],
         "//tensorflow:windows_and_api_version_2": [],
@@ -709,7 +708,6 @@ def tf_additional_cloud_kernel_deps():
     return select({
         "//tensorflow:android": [],
         "//tensorflow:ios": [],
-        "//tensorflow:linux_s390x": [],
         "//tensorflow:windows": [],
         "//tensorflow:api_version_2": [],
         "//tensorflow:windows_and_api_version_2": [],
