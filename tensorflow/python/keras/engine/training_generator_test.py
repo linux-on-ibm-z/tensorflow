@@ -402,7 +402,7 @@ class TestGeneratorMethods(ForkRobustTestCase):
 
   @keras_parameterized.run_with_all_model_types
   @keras_parameterized.run_all_keras_modes
-  @data_utils.dont_use_multiprocessing_pool
+#  @data_utils.dont_use_multiprocessing_pool
   def test_generator_dynamic_shapes(self):
     x = [
         'I think juice is great',
