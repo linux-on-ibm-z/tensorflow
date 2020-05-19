@@ -137,7 +137,7 @@ typedef struct TF_TString {  // NOLINT
 // _Static_assert(sizeof(TF_TString) == 24);
 
 extern inline TF_TString_Type TF_TString_GetType(const TF_TString *str) {
-       return (TF_TString_Type)(str->u.raw.raw[0] & TF_TSTR_TYPE_MASK);  // NOLINT
+  return (TF_TString_Type)(str->u.raw.raw[0] & TF_TSTR_TYPE_MASK);  // NOLINT
 }
 
 // XXX(dero): For the big-endian case, this function could potentially be more
@@ -145,7 +145,7 @@ extern inline TF_TString_Type TF_TString_GetType(const TF_TString *str) {
 // and always byte-swapping on big endian, resulting in a simple 'bswap'+'shr'
 // (for architectures that have a bswap op).
 static inline size_t TF_TString_ToActualSizeT(size_t size) {
-#if TF_TSTRING_LITTLE_ENDIAN
+#ifdef TF_TSTRING_LITTLE_ENDIAN
   return size >> 2;
 #else   // TF_TSTRING_LITTLE_ENDIAN
   // 0xFF000000 or 0xFF00000000000000 depending on platform
@@ -157,7 +157,7 @@ static inline size_t TF_TString_ToActualSizeT(size_t size) {
 
 static inline size_t TF_TString_ToInternalSizeT(size_t size,
                                                 TF_TString_Type type) {
-#if TF_TSTRING_LITTLE_ENDIAN
+#ifdef TF_TSTRING_LITTLE_ENDIAN
   return (size << 2) | type;
 #else   // TF_TSTRING_LITTLE_ENDIAN
   // 0xFF000000 or 0xFF00000000000000 depending on platform
