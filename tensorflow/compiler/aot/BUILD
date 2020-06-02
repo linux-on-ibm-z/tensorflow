@@ -64,6 +64,7 @@ cc_library(
         "@llvm-project//llvm:powerpc_code_gen",  # fixdeps: keep
         "@llvm-project//llvm:target",
         "@llvm-project//llvm:x86_code_gen",  # fixdeps: keep
+	"@llvm-project//llvm:system_z_code_gen",  # fixdeps: keep
     ] + if_llvm_aarch64_available([
         "//third_party/llvm/llvm-project/llvm:aarch64_target",  # fixdeps: keep
     ]),
@@ -105,6 +106,7 @@ cc_library(
         "@llvm-project//llvm:powerpc_code_gen",  # fixdeps: keep
         "@llvm-project//llvm:target",
         "@llvm-project//llvm:x86_code_gen",  # fixdeps: keep
+	"@llvm-project//llvm:system_z_code_gen",  # fixdeps: keep
     ] + if_llvm_aarch64_available([
         "//third_party/llvm/llvm-project/llvm:aarch64_target",  # fixdeps: keep
     ]),

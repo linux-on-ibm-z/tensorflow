@@ -46,9 +46,9 @@ tf.Tensor([False True True], shape=(3,), dtype=bool)
 tf.Tensor([0. 1. 1.], shape=(3,), dtype=float32)
 >>> print(equality_bitcast)
 tf.Tensor(
-    [[  0   0   0   0]
-     [  0   0 128  63]
-     [  0   0 128  63]], shape=(3, 4), dtype=uint8)
+[[  0   0   0   0]
+ [ 63 128   0   0]
+ [ 63 128   0   0]], shape=(3, 4), dtype=uint8)
 
 *NOTE*: Bitcast is implemented as a low-level cast, so machines with different
 endian orderings will give different results.

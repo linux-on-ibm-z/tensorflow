@@ -328,17 +328,17 @@ class KerasMultiWorkerFaultToleranceTest(test_base.IndependentWorkerTestBase,
     # Important: the results from preemption interrupted and non-interrupted
     # cases should give the same final results.
     assert_all_elements_are_identical(
-        [history['acc'][-1] for history in self._histories])
+        [history['accuracy'][-1] for history in self._histories])
     assert_all_elements_are_identical(
         [history['loss'][-1] for history in self._histories])
     # The length of `self._histories` would be num_workers * num_runs (3).
     self.assertLen(self._histories, 4)
 
     # Results from case 1 should have 3 full epochs.
-    self.assertLen(self._histories[0]['acc'], 3)
+    self.assertLen(self._histories[0]['accuracy'], 3)
     # Results from case 2 should only have 2 full epochs because it restarted at
     # epoch 1.
-    self.assertLen(self._histories[-1]['acc'], 2)
+    self.assertLen(self._histories[-1]['accuracy'], 2)
 
 
 if __name__ == '__main__':
