@@ -1083,14 +1083,8 @@ REGISTER_TPU_DRIVER(
     "grpc://",
     [](const TpuDriverConfig& config)
         -> xla::StatusOr<std::unique_ptr<TpuDriver>> {
-      if (absl::StartsWith(config.worker(), "grpc://localhost")) {
-        LOG(INFO) << "Using local credentials for localhost: connection.";
-        return CreateGrpcTpuDriver(
-            config, ::grpc::experimental::LocalCredentials(LOCAL_TCP));
-      } else {
-        return CreateGrpcTpuDriver(config,
-                                   ::grpc::InsecureChannelCredentials());
-      }
+      return CreateGrpcTpuDriver(config,
+                                 ::grpc::InsecureChannelCredentials());
     });
 
 }  // namespace tpu_driver
