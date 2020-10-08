@@ -146,6 +146,11 @@ class FlatBufferModel {
   // reported minimum.
   string GetMinimumRuntime() const;
 
+  // Return the endianness of the serialized flatbuffer. If the endianness is
+  // different from the host machine endianness, the tensors need to be
+  // byte-swapped during interpreter initialization.
+  string GetModelEndianness() const;
+
   /// Returns true if the model identifier is correct (otherwise false and
   /// reports an error).
   bool CheckModelIdentifier() const;
@@ -236,6 +241,7 @@ class InterpreterBuilder {
   const Allocation* allocation_ = nullptr;
 
   bool has_flex_op_ = false;
+  bool need_to_swap_bytes_ = false;
 };
 
 }  // namespace tflite

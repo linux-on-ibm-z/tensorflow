@@ -257,7 +257,7 @@ TEST_F(ExportTest, ExportMinRuntime) {
   string output;
   auto status = Export(input_model_, &output, params);
   auto* model = ::tflite::GetModel(output.data());
-  EXPECT_EQ(model->metadata()->size(), 1);
+  EXPECT_EQ(model->metadata()->size(), 2);
   EXPECT_EQ(model->metadata()->Get(0)->name()->str(), "min_runtime_version");
   auto buf = model->metadata()->Get(0)->buffer();
   auto* buffer = (*model->buffers())[buf];
@@ -275,7 +275,7 @@ TEST_F(ExportTest, ExportEmptyMinRuntime) {
   string output;
   auto status = Export(input_model_, &output, params);
   auto* model = ::tflite::GetModel(output.data());
-  EXPECT_EQ(model->metadata()->size(), 1);
+  EXPECT_EQ(model->metadata()->size(), 2);
   EXPECT_EQ(model->metadata()->Get(0)->name()->str(), "min_runtime_version");
   auto buf = model->metadata()->Get(0)->buffer();
   auto* buffer = (*model->buffers())[buf];
