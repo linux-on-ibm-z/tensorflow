@@ -287,7 +287,7 @@ TEST_F(ArithmeticOptimizerTest, TrivialSumsSimple) {
   ASSERT_EQ(new_const->input_size(), 1);
   EXPECT_EQ(new_const->input(0), "^x");
   EXPECT_EQ(new_const->attr().at("value").tensor().tensor_content(),
-            string("\0\0\0@", 4));
+            string("@\0\0\0", 4));
 
   const NodeDef* new_mul = node_map.GetNode(optimized_mul_name);
   ASSERT_NE(new_mul, nullptr);
@@ -334,7 +334,7 @@ TEST_F(ArithmeticOptimizerTest, TrivialSumsSimpleWithControlDep) {
   ASSERT_EQ(new_const->input_size(), 1);
   EXPECT_EQ(new_const->input(0), "^x");
   EXPECT_EQ(new_const->attr().at("value").tensor().tensor_content(),
-            string("\0\0\0@", 4));
+            string("@\0\0\0", 4));
 
   const NodeDef* new_mul = node_map.GetNode(optimized_mul_name);
   ASSERT_NE(new_mul, nullptr);

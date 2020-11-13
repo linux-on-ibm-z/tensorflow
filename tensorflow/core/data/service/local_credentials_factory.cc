@@ -24,13 +24,13 @@ class LocalCredentialsFactory : public CredentialsFactory {
 
   Status CreateServerCredentials(
       std::shared_ptr<::grpc::ServerCredentials>* out) override {
-    *out = grpc::experimental::LocalServerCredentials(LOCAL_TCP);
+    *out = grpc::InsecureServerCredentials();
     return Status::OK();
   }
 
   Status CreateClientCredentials(
       std::shared_ptr<::grpc::ChannelCredentials>* out) override {
-    *out = grpc::experimental::LocalCredentials(LOCAL_TCP);
+    *out = grpc::InsecureChannelCredentials();
     return Status::OK();
   }
 };

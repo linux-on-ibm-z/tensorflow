@@ -824,6 +824,7 @@ cc_library(
         "//tensorflow:ios": [],
         "//tensorflow:linux_aarch64": [],
         "//tensorflow:linux_ppc64le": [],
+        "//tensorflow:linux_s390x": [],
         "//conditions:default": [
             "TENSORFLOW_USE_CUSTOM_CONTRACTION_KERNEL",
             "TENSORFLOW_USE_MKLDNN_CONTRACTION_KERNEL",
@@ -839,6 +840,7 @@ cc_library(
         "//tensorflow:ios": [],
         "//tensorflow:linux_aarch64": [],
         "//tensorflow:linux_ppc64le": [],
+        "//tensorflow:linux_s390x": [],
         "//conditions:default": ["@mkl_dnn//:mkldnn_single_threaded"],
     }),
 )
@@ -3235,6 +3237,7 @@ tf_cc_test(
         "//tensorflow:arm": [],
         "//tensorflow:ios": [],
         "//tensorflow:linux_ppc64le": [],
+        "//tensorflow:linux_s390x": [],
         ":no_mkldnn_contraction_kernel": [],
         "//conditions:default": ["eigen_mkldnn_contraction_kernel_test.cc"],
     }),
