@@ -232,7 +232,7 @@ class TensorUtilTest(test.TestCase):
         """
       dtype: DT_HALF
       tensor_shape { dim { size: 2 } }
-      tensor_content: "\000I\000M"
+      tensor_content: "I\000M\000"
       """, t)
 
     a = tensor_util.MakeNdarray(t)
