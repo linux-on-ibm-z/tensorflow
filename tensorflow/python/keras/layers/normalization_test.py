@@ -216,7 +216,7 @@ class BatchNormalizationTest(keras_parameterized.TestCase):
         'mse',
         run_eagerly=testing_utils.should_run_eagerly())
     train_loss = model.train_on_batch(test_data, test_targets)
-    self.assertAlmostEqual(test_loss, train_loss)
+    self.assertAlmostEqual(test_loss, train_loss, 6)
 
   @keras_parameterized.run_all_keras_modes(always_skip_v1=True)
   def test_eager_batchnorm_in_custom_model_call_with_tf_function(self):
