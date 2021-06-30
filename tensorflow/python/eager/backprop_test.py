@@ -1817,7 +1817,7 @@ class JacobianTest(test.TestCase):
 
     theoretical, numerical = gradient_checker_v2.compute_gradient(
         def_function.function(_inner), [array_ops.ones([10, 4, 4, 1])])
-    self.assertAllClose(numerical, theoretical, rtol=1e-1)
+    self.assertAllClose(numerical, theoretical, rtol=1.2e-1)
 
     @def_function.function
     def _outer():
@@ -1828,7 +1828,7 @@ class JacobianTest(test.TestCase):
       return tape.gradient(y, x)
 
     self.assertAllClose(array_ops.reshape(numerical, [-1]),
-                        array_ops.reshape(_outer(), [-1]), rtol=1e-1)
+                        array_ops.reshape(_outer(), [-1]), rtol=1.2e-1)
 
   @test_util.run_in_graph_and_eager_modes
   def test_indexed_slices(self):

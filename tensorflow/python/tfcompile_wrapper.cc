@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <string>
 
+#include "llvm/Support/Host.h"
 #include "pybind11/cast.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/pytypes.h"
@@ -45,7 +46,8 @@ PYBIND11_MODULE(_pywrap_tfcompile, m) {
         flags.graph = std::move(graph);
         flags.config = std::move(config);
         flags.target_triple = std::move(target_triple);
-        flags.target_cpu = std::move(target_cpu);
+        flags.target_cpu = std::move(target_cpu.empty() ?
+                       llvm::sys::getHostCPUName().str() : target_cpu);
         flags.target_features = std::move(target_features);
         flags.entry_point = std::move(entry_point);
         flags.cpp_class = std::move(cpp_class);
