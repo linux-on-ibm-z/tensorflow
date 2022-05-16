@@ -53,7 +53,12 @@ def captured_output():
   finally:
     sys.stdout, sys.stderr = old_out, old_err
 
-
+def get_cpu_architecture():
+    """Return the architecture string for the currently configured CPU
+    architecture, e.g., `aarch64`, `ppc64le`, or `x86_64`.
+    """
+    return platform.machine()
+    
 class SavedModelCLITestCase(test.TestCase, parameterized.TestCase):
 
   def setUp(self):
@@ -795,6 +800,9 @@ Concrete Functions:
   )
   def testAOTCompileCPUFreezesAndCompiles(self, variables_to_feed, func,
                                           target_triple):
+    target_test=get_cpu_architecture();
+    if target_test == 's390x':
+        target_triple = 'systemz-none-linux-gnu'
     if not test.is_built_with_xla():
       self.skipTest('Skipping test because XLA is not compiled in.')
 
