@@ -1228,6 +1228,22 @@ Documented at https://www.tensorflow.org/xla/operation_semantics#optimizationbar
 input: A Tuple of Arrays of any type.
 )doc");
 
+REGISTER_OP("XlaReducePrecision")
+    .Input("operand: T")
+    .Output("output: T")
+    .Attr("T: {bfloat16, half, float, double}")
+    .Attr("exponent_bits: int")
+    .Attr("mantissa_bits: int")
+    .SetShapeFn(shape_inference::UnchangedShape)
+    .Doc(R"doc(
+Wraps the XLA ReducePrecision operator
+  documented at https://www.tensorflow.org/xla/operation_semantics#reduceprecision.
+
+operand: array of floating-point type.
+exponent_bits: number of exponent bits in lower-precision format
+mantissa_bits: number of mantissa bits in lower-precision format
+)doc");
+
 REGISTER_OP("XlaCustomCall")
     .Input("args: T")
     .Output("output: dtype")
@@ -1265,8 +1281,6 @@ REGISTER_OP("XlaCallModule")
     .Attr("Tin: list(type) >= 0")
     .Attr("dim_args_spec: list(string) >= 0")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
-      // For debugging
-      VLOG(3) << "XlaCallModule.shape_inference";
       std::vector<shape_inference::ShapeHandle> args_shapes;
       TF_RETURN_IF_ERROR(c->input("args", &args_shapes));
       for (int i = 0; i < args_shapes.size(); ++i) {

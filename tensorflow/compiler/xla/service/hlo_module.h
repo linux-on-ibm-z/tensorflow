@@ -43,7 +43,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/name_uniquer.h"
 #include "tensorflow/compiler/xla/types.h"
 #include "tensorflow/core/lib/gtl/iterator_range.h"
-#include "tensorflow/core/platform/logging.h"
+#include "tensorflow/tsl/platform/logging.h"
 
 namespace xla {
 
@@ -546,7 +546,7 @@ class HloModule {
   // Used to keep track of the next unique module id that should be assigned.
   static std::atomic<int> next_unique_module_id_;
   // A unique id to label modules with.
-  int unique_id_;
+  const int unique_id_;
 
   // The HloSchedule of the module. The schedule if it exists contains a
   // sequential order of instructions for each non-fusion computation in the

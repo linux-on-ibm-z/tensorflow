@@ -33,9 +33,9 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/pattern_matcher.h"
 #include "tensorflow/compiler/xla/status_macros.h"
 #include "tensorflow/compiler/xla/statusor.h"
+#include "tensorflow/compiler/xla/stream_executor/lib/statusor.h"
 #include "tensorflow/compiler/xla/xla_data.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/stream_executor/lib/statusor.h"
 
 namespace xla {
 namespace gpu {
@@ -162,7 +162,8 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
     HloInstruction *alpha, *existing_gemm;
     if (Match(instr,
               m::MultiplyAnyOrder(
-                  m::Op(&existing_gemm).WithCustomCallTarget(kGemmCallTarget),
+                  m::CustomCall(&existing_gemm,
+                                {kGemmCallTarget, kCublasLtMatmulCallTarget}),
                   m::Broadcast(m::ConstantScalar(&alpha))))) {
       TF_ASSIGN_OR_RETURN(auto config,
                           existing_gemm->backend_config<GemmBackendConfig>());
@@ -216,10 +217,11 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
                                         .WithOneUser())
                              .WithOneUser(),
                          m::Op(&bias)))) {
-      TF_ASSIGN_OR_RETURN(
-          HloInstruction * new_add,
-          MakeBinaryHlo(HloOpcode::kAdd, existing_gemm,
-                        MakeBitcastHlo(bias, existing_gemm->shape())));
+      HloInstruction *new_bitcast =
+          MakeBitcastHlo(bias, existing_gemm->shape(), &bias->metadata());
+      TF_ASSIGN_OR_RETURN(HloInstruction * new_add,
+                          MakeBinaryHlo(HloOpcode::kAdd, existing_gemm,
+                                        new_bitcast, &bias->metadata()));
       TF_RETURN_IF_ERROR(
           ReplaceInstruction(instr, MakeBitcastHlo(new_add, instr->shape())));
 
@@ -227,15 +229,16 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
       instr = new_add;
     }
 
-    if (Match(instr, m::AddAnyOrder(
-                         m::Op(&existing_gemm)
-                             .WithCustomCallTarget(
-                                 {kGemmCallTarget, kCublasLtMatmulCallTarget}),
-                         m::Op(&bias)))) {
+    if (Match(instr,
+              m::AddAnyOrder(
+                  m::Op(&existing_gemm)
+                      .WithCustomCallTarget(absl::Span<const absl::string_view>{
+                          kGemmCallTarget, kCublasLtMatmulCallTarget}),
+                  m::Op(&bias)))) {
       return FuseMatrixBiasAdd(instr, bias, existing_gemm);
     }
 
-    return Status::OK();
+    return OkStatus();
   }
 
   Status HandleConvert(HloInstruction *instr) override {
@@ -243,8 +246,9 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
     if (Match(
             instr,
             m::Convert(m::AddAnyOrder(
-                           m::Convert(m::Op(&existing_gemm)
-                                          .WithCustomCallTarget(kGemmCallTarget)
+                           m::Convert(m::CustomCall(&existing_gemm,
+                                                    {kGemmCallTarget,
+                                                     kCublasLtMatmulCallTarget})
                                           .WithElementType(BF16)),
                            m::Convert(m::Op(&bias).WithElementType(BF16))))
                 .WithElementType(BF16))) {
@@ -267,7 +271,7 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
     // is the only user. cublasLt matmul can operate out-of-place.
     bool can_fuse_bias = (bias->user_count() == 1) || IsCublasLtMatmul(*gemm);
 
-    auto config = gemm->backend_config<GemmBackendConfig>().ValueOrDie();
+    auto config = gemm->backend_config<GemmBackendConfig>().value();
 
     // It is possible to fuse into a cublasLt matmul that already has a vector
     // bias, but no other epilogue will commute with the matrix bias add.
@@ -290,7 +294,7 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
         gemm->CloneWithNewOperands(instr->shape(), operands);
 
     TF_RETURN_IF_ERROR(fused_op->set_backend_config(config));
-    if (IsCublasGemm(*fused_op)) {
+    if (IsLegacyCublasMatmul(*fused_op)) {
       // Force bias input to alias with output, as GEMM operates in-place.
       xla::Cast<HloCustomCallInstruction>(fused_op.get())
           ->set_output_to_operand_aliasing({{{}, {2, {}}}});
@@ -305,7 +309,7 @@ class GemmRewriterVisitor : public DfsHloRewriteVisitor {
                                    HloInstruction *matmul) {
     TF_RET_CHECK(broadcast_bias->shape() == matmul->shape());
 
-    auto config = matmul->backend_config<GemmBackendConfig>().ValueOrDie();
+    auto config = matmul->backend_config<GemmBackendConfig>().value();
 
     // # output column dims == # non-contracting rhs operand dims.
     const DotDimensionNumbers &dot_dims = config.dot_dimension_numbers();

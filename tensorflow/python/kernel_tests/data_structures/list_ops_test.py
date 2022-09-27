@@ -94,6 +94,16 @@ class ListOpsTest(test_util.TensorFlowTestCase, parameterized.TestCase):
       l = list_ops.tensor_list_pop_back(l, element_dtype=dtypes.float32)
       self.evaluate(l)
 
+  def testTensorListReserveWithNonScalarNumElements(self):
+    # list_kernels.cc in tf/core/kernels raises InvalidArgumentError, and
+    # tf_ops_n_z.cc in tf/compiler/mlir/tf/ir raises UnknownError.
+    with self.assertRaises((errors.InvalidArgumentError, errors.UnknownError)):
+      l = list_ops.tensor_list_reserve(
+          element_dtype=dtypes.float32,
+          element_shape=[2, 3],
+          num_elements=constant_op.constant([1, 1]))
+      self.evaluate(l)
+
   def testPopUninitializedTensorUseListElementShape(self):
     l = list_ops.tensor_list_reserve(
         element_dtype=dtypes.float32, element_shape=[2, 3], num_elements=3)
@@ -1647,6 +1657,15 @@ class ListOpsTest(test_util.TensorFlowTestCase, parameterized.TestCase):
       l = list_ops.tensor_list_from_tensor([1., 2., 3.], element_shape=[])
       l = list_ops.tensor_list_resize(l, -1)
       self.evaluate(l)
+
+  @test_util.run_in_graph_and_eager_modes
+  def testResizeWithNonScalarFails(self):
+    l = list_ops.tensor_list_from_tensor([3, 4, 5], element_shape=[])
+    size = np.zeros([0, 2, 3, 3])
+    with self.assertRaisesRegex((ValueError, errors.InvalidArgumentError),
+                                r"Shape must be rank 0 but is rank \d+|"
+                                r"\w+ must be a scalar"):
+      self.evaluate(gen_list_ops.TensorListResize(input_handle=l, size=size))
 
   @test_util.run_deprecated_v1
   @test_util.enable_control_flow_v2
