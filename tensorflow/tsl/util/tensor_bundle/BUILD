@@ -29,3 +29,18 @@ filegroup(
         "byte_swap_array.h",
     ],
 )
+
+filegroup(
+    name = "mobile_srcs_only_runtime",
+    srcs = [
+        "byte_swap_array.cc",
+        "byte_swap_array.h",
+    ],
+)
+
+filegroup(
+    name = "framework_internal_private_hdrs",
+    srcs = [
+        "byte_swap_array.h",
+    ],
+)
