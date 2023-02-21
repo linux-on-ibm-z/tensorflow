@@ -9,9 +9,9 @@ exports_files(["LICENSE"])
 # Data for core MIME/Unix/Windows encodings:
 # ISO 8859-2..9, 15; Windows-125x; EUC-CN; GBK (Windows cp936); GB 18030;
 # Big5 (Windows cp950); SJIS (Windows cp932); EUC-JP; EUC-KR, KS C 5601;
-# Windows cp949. Data is pre-processed for little-endian platforms. To replicate
-# this pre-processing (if you want additional encodings, for example), do the
-# following:
+# Windows cp949. Data is pre-processed for little-endian and big-endian platforms.
+# To replicate this pre-processing (if you want additional encodings, for example),
+# do the following:
 #
 # First, download, build, and install ICU. This installs tools such as makeconv.
 # Then, run the following from your icu4c/source directory:
@@ -22,12 +22,21 @@ exports_files(["LICENSE"])
 #   $ genccode icudt70l.dat   # Note: this number must match version, and below too!
 #   $ echo 'U_CAPI const void * U_EXPORT2 uprv_getICUData_conversion() { return icudt70l_dat.bytes; }' >> icudt70l_dat.c
 #
-# This creates icudt70l_dat.c, which you can move, rename, gzip, then split,
+# Then, create the big-endian format data file by converting the little-endian icudt70l.dat
+#   $ icupkg -tb ./icudt70l.dat icudt70b.dat
+#   $ genccode icudt70b.dat
+#   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_conversion() { return icudt70b_dat.bytes; }" >> icudt70b_dat.c
+#
+# This creates icudt70l_dat.c and icudt70b_dat.c, which you can move, rename, gzip, then split,
 # for example (but you can change to other numbers):
 #   $ cp icudt70l_dat.c icu_conversion_data.c
 #   $ gzip icu_conversion_data.c
 #   # Note: make sure you don't forget the last . below!
 #   $ split -a 3 -b 100000 icu_conversion_data.c.gz icu_conversion_data.c.gz.
+#   # And do the same for the big-endian file.
+#   $ cp icudt70b_dat.c icu_conversion_data_big_endian.c
+#   $ gzip icu_conversion_data_big_endian.c
+#   $ split -a 3 -b 100000 icu_conversion_data_big_endian.c.gz icu_conversion_data_big_endian.c.gz.
 #
 # Then, copy the generated files to this directory, removing existing ones.
 #
@@ -43,7 +52,10 @@ exports_files(["LICENSE"])
 # Please make sure to keep this updated if you change the data files.
 filegroup(
     name = "conversion_files",
-    srcs = glob(["icu_conversion_data.c.gz.*"]),
+    srcs = select({
+        "@org_tensorflow//tensorflow:linux_s390x": glob(["icu_conversion_data_big_endian.c.gz.*"]),
+        "//conditions:default": glob(["icu_conversion_data.c.gz.*"]),
+    }),
 )
 
 # Data files are compressed and split to work around git performance degradation
