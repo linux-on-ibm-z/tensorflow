@@ -15,17 +15,21 @@ limitations under the License.
 
 #include "xla/tools/collective_perf_table_gen.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "absl/time/time.h"
 #include "xla/hlo/ir/collective_device_list.h"
@@ -38,6 +42,7 @@ limitations under the License.
 #include "xla/service/gpu/model/hlo_op_profile.pb.h"
 #include "xla/service/gpu/model/hlo_op_profiler.h"
 #include "xla/service/gpu/model/hlo_op_profiles.h"
+#include "xla/service/hlo_module_config.h"
 #include "xla/tools/multihost_hlo_runner/create_client.h"
 #include "xla/tools/multihost_hlo_runner/functional_hlo_runner.h"
 #include "xla/tsl/platform/env.h"
@@ -67,6 +72,31 @@ struct StaticSpec {
 
 struct ExplicitSpec {
   std::unique_ptr<HloModule> module;
+};
+
+struct ProfilingResult {
+  std::string device_info;
+  HloInstructionProto hlo_proto;
+  std::vector<HloInstructionProto> operands;
+  std::string fingerprint;
+  int64_t clock_cycles;
+  int64_t flops;
+  int64_t network_throughput;
+
+  struct Hash {
+    size_t operator()(const ProfilingResult& profiling_result) const {
+      return absl::HashOf(profiling_result.device_info,
+                          profiling_result.fingerprint);
+    }
+  };
+
+  struct Eq {
+    bool operator()(const ProfilingResult& lhs,
+                    const ProfilingResult& rhs) const {
+      return lhs.device_info == rhs.device_info &&
+             lhs.fingerprint == rhs.fingerprint;
+    }
+  };
 };
 
 int64_t GetInputDim(CollectivePerfTableGen::CollectiveType type,
@@ -186,7 +216,10 @@ std::unique_ptr<HloModule> CreateCollectiveModule(const StaticSpec& spec) {
   std::string hlo =
       GetHlo(spec.collective_type, input_dim, output_dim, spec.replica_groups);
 
-  auto parsed = ParseAndReturnUnverifiedModule(hlo);
+  HloModuleConfig config;
+  config.set_num_partitions(spec.replica_groups.num_devices_per_group() *
+                            spec.replica_groups.num_replica_groups());
+  auto parsed = ParseAndReturnUnverifiedModule(hlo, config);
   CHECK_OK(parsed.status());
   return std::move(*parsed);
 }
@@ -200,6 +233,16 @@ uint64_t GetNetworkThroughputBytesPerSec(absl::Duration runtime,
                                          int64_t tensor_size_bytes) {
   CHECK_NE(runtime, absl::ZeroDuration());
   return tensor_size_bytes * 1e9 / absl::ToInt64Nanoseconds(runtime);
+}
+
+IotaReplicaGroupList GetCollectiveDeviceList(
+    absl::string_view collective_device_list_unparsed) {
+  auto collective_device_list =
+      xla::ParseCollectiveDeviceListOnly(collective_device_list_unparsed);
+  CHECK_OK(collective_device_list);
+  CHECK(collective_device_list->iota_replica_group_list().has_value());
+
+  return *collective_device_list->iota_replica_group_list();
 }
 
 }  // namespace
@@ -224,7 +267,7 @@ std::unique_ptr<PjRtLoadedExecutable> CollectivePerfTableGen::Compile(
     std::unique_ptr<HloModule> module) {
   DebugOptions debug_opts;
   FunctionalHloRunner::RawCompileOptions opts;
-  opts.num_partitions = 8;
+  opts.num_partitions = module->config().num_partitions();
   opts.spmd_mode = FunctionalHloRunner::SpmdMode::kUseSpmdPartitioning;
   auto compile_opts = FunctionalHloRunner::CreateCompileOptions(
       *pjrt_env_.client, opts, config_.task_id, config_.num_nodes);
@@ -250,18 +293,26 @@ CollectivePerfTableGen::ProfilingData CollectivePerfTableGen::Profile(
   VLOG(1) << "Compiled module: "
           << executable->GetHloModules().value()[0]->ToString();
 
+  // We do not profile dry runs or on more than one tasks.
   if (config_.dry_run) {
     return {};
   }
 
-  std::unique_ptr<HloOpProfiler::KernelTracer> tracer =
-      HloOpProfiler::GetKernelTracer();
+  if (config_.task_id == 0) {
+    std::unique_ptr<HloOpProfiler::KernelTracer> tracer =
+        HloOpProfiler::GetKernelTracer();
+    for (int i = 0; i < kNumProfilingRuns; ++i) {
+      Run(*executable);
+    }
+    return {
+        /*runtime=*/absl::Nanoseconds(
+            std::move(*tracer).getMedianKernelTimeNs()),
+    };
+  }
   for (int i = 0; i < kNumProfilingRuns; ++i) {
     Run(*executable);
   }
-  return {
-      /*runtime=*/absl::Nanoseconds(std::move(*tracer).getMedianKernelTimeNs()),
-  };
+  return {};
 }
 
 DeviceHloInstructionProfiles CollectivePerfTableGen::ComputeTable() {
@@ -282,11 +333,14 @@ DeviceHloInstructionProfiles CollectivePerfTableGen::ComputeTable() {
   for (int64_t tensor_size = tsize_spec.start; tensor_size <= tsize_spec.stop;
        tensor_size = inc(tensor_size, tsize_spec)) {
     for (CollectiveType collective_type : config_.collective_types) {
-      for (const IotaReplicaGroupList& replica_groups :
-           config_.replica_groups_list) {
+      for (absl::string_view replica_groups_raw : config_.replica_groups_list) {
         CHECK(collective_type != CollectiveType::UNSPECIFIED);
 
-        StaticSpec spec{collective_type, replica_groups, tensor_size};
+        StaticSpec spec{
+            collective_type,
+            GetCollectiveDeviceList(replica_groups_raw),
+            tensor_size,
+        };
         static_specs.push_back(spec);
       }
     }
@@ -313,6 +367,10 @@ DeviceHloInstructionProfiles CollectivePerfTableGen::ComputeTable() {
     if (!config_.dry_run) {
       profiled_data = Profile(std::move(spec.module));
     }
+    if (profiled_data.runtime == absl::ZeroDuration()) {
+      VLOG(1) << "Size: " << static_spec.tensor_size_bytes << " too small.";
+      continue;
+    }
     entry.set_network_throughput_bytes_per_sec(GetNetworkThroughputBytesPerSec(
         profiled_data.runtime, static_spec.tensor_size_bytes));
 
@@ -332,6 +390,9 @@ DeviceHloInstructionProfiles CollectivePerfTableGen::ComputeTable() {
 
 absl::Status CollectivePerfTableGen::Dump(
     const DeviceHloInstructionProfiles& table) {
+  if (config_.task_id != 0) {
+    return absl::OkStatus();
+  }
   if (config_.output == CollectivePerfTableGen::Config::kStdout) {
     LOG(INFO) << table.DebugString();
     return absl::OkStatus();
@@ -365,6 +426,79 @@ absl::Status CollectivePerfTableGen::Dump(
                      ". Expecting .pb or .pbtxt suffix."));
   }
   return absl::OkStatus();
+}
+
+DeviceHloInstructionProfiles CollectivePerfTableGen::Merge(
+    absl::string_view merge_path) {
+  DeviceHloInstructionProfiles result;
+  std::vector<std::string> filenames;
+  CHECK_OK(
+      tsl::Env::Default()->GetChildren(std::string(merge_path), &filenames));
+
+  absl::flat_hash_set<ProfilingResult, ProfilingResult::Hash,
+                      ProfilingResult::Eq>
+      profiling_results;
+  uint64_t profiling_results_counter = 0;
+  for (const std::string& filename : filenames) {
+    // Read file.
+    std::string profile_path = absl::StrCat(merge_path, "/", filename);
+    DeviceHloInstructionProfiles partial_profile;
+
+    CHECK_OK(tsl::Env::Default()->FileExists(profile_path));
+    if (!tsl::ReadTextOrBinaryProto(tsl::Env::Default(), profile_path,
+                                    &partial_profile)
+             .ok()) {
+      LOG(WARNING) << "Cannot read :" << profile_path;
+      continue;
+    }
+
+    for (auto& [device_descriptor, data] : partial_profile.entries()) {
+      for (const HloInstructionProfile& profile : data.entries()) {
+        CHECK(!profile.fingerprint().empty())
+            << "Expected fingerprint to deduplicate: " << profile.DebugString();
+
+        ProfilingResult profiling_result{
+            device_descriptor,
+            std::move(profile.instruction()),
+            {
+                profile.operands().begin(),
+                profile.operands().end(),
+            },
+            std::move(profile.fingerprint()),
+            profile.clock_cycles(),
+            profile.flops(),
+            profile.network_throughput_bytes_per_sec(),
+        };
+        profiling_results.insert(profiling_result);
+        profiling_results_counter++;
+      }
+    }
+  }
+  LOG(INFO) << "Merging and deduplication entries count. Before "
+            << profiling_results_counter << ", after "
+            << profiling_results.size() << ".";
+
+  for (const ProfilingResult& profiling_result : profiling_results) {
+    std::string device_descriptor = profiling_result.device_info;
+    if (!result.mutable_entries()->contains(device_descriptor)) {
+      result.mutable_entries()->insert({device_descriptor, {}});
+    }
+
+    HloInstructionProfile profile_proto;
+    *profile_proto.mutable_instruction() =
+        std::move(profiling_result.hlo_proto);
+    for (auto op : profiling_result.operands) {
+      *profile_proto.add_operands() = std::move(op);
+    }
+    profile_proto.set_flops(profiling_result.flops);
+    profile_proto.set_clock_cycles(profiling_result.clock_cycles);
+    profile_proto.set_fingerprint(profiling_result.fingerprint);
+
+    *result.mutable_entries()->at(device_descriptor).add_entries() =
+        std::move(profile_proto);
+  }
+
+  return result;
 }
 
 }  // namespace xla::gpu

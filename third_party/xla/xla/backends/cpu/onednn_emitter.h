@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2025 The OpenXLA Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,21 +13,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/compiler/mlir/lite/utils/size_utils.h"
+#ifndef XLA_BACKENDS_CPU_ONEDNN_EMITTER_H_
+#define XLA_BACKENDS_CPU_ONEDNN_EMITTER_H_
 
-#include "mlir/IR/BuiltinTypeInterfaces.h"  // from @llvm-project
-#include "tensorflow/core/platform/test.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
+#include "xla/backends/cpu/onednn_fusion.h"
+#include "xla/hlo/ir/hlo_computation.h"
 
-namespace mlir {
-namespace TFL {
-namespace {
+namespace xla::cpu {
 
-TEST(SizeUtilTest, TestConvertsSize) {
-  ASSERT_EQ(ConvertToTfliteSize(1), 1);
-  ASSERT_EQ(ConvertToTfliteSize(-1), -1);
-  ASSERT_EQ(ConvertToTfliteSize(mlir::ShapedType::kDynamic), -1);
-}
+absl::StatusOr<absl::AnyInvocable<absl::StatusOr<OneDnnFusion>()>>
+EmitOneDnnFusionBuilder(const HloComputation* computation);
 
-}  // namespace
-}  // namespace TFL
-}  // namespace mlir
+}  // namespace xla::cpu
+
+#endif  // XLA_BACKENDS_CPU_ONEDNN_EMITTER_H_

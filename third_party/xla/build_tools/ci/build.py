@@ -93,6 +93,7 @@ class BuildType(enum.Enum):
   GPU_T4_SELF_HOSTED = enum.auto()
 
   MACOS_CPU_X86 = enum.auto()
+  MACOS_CPU_ARM64 = enum.auto()
 
   JAX_CPU_SELF_HOSTED = enum.auto()
   JAX_X86_GPU_T4_SELF_HOSTED = enum.auto()
@@ -158,7 +159,10 @@ class Build:
     # problems in practice.
     # TODO(ddunleavy): Remove the condition here. Need to get parallel on the
     # MacOS VM.
-    if self.type_ != BuildType.MACOS_CPU_X86:
+    if (
+        self.type_ != BuildType.MACOS_CPU_X86
+        and self.type_ != BuildType.MACOS_CPU_ARM64
+    ):
       cmds.append(
           retry(
               self.bazel_command(
@@ -292,6 +296,32 @@ _MACOS_X86_BUILD = Build(
     ),
 )
 
+_MACOS_ARM64_BUILD = Build(
+    type_=BuildType.MACOS_CPU_ARM64,
+    repo="openxla/xla",
+    configs=("nonccl",),
+    target_patterns=(
+        "//xla/...",
+        "-//xla/hlo/experimental/...",
+        "-//xla/python_api/...",
+        "-//xla/python/...",
+        "-//xla/service/gpu/...",
+    ),
+    options=dict(
+        **_DEFAULT_BAZEL_OPTIONS,
+        macos_minimum_os="10.15",
+        test_tmpdir="/tmpfs/bazel_output",
+        test_size_filters="small,medium",
+    ),
+    build_tag_filters=macos_tag_filter,
+    test_tag_filters=macos_tag_filter,
+    extra_setup_commands=(
+        ["df", "-h"],  # Debug "No space left on device" error: b/396611909.
+        ["bazel", "--version"],  # Sanity check due to strange failures
+        ["mkdir", "-p", "/tmpfs/bazel_output"],
+    ),
+)
+
 _JAX_CPU_SELF_HOSTED_BUILD = Build(
     type_=BuildType.JAX_CPU_SELF_HOSTED,
     repo="google/jax",
@@ -397,6 +427,7 @@ _TENSORFLOW_GPU_SELF_HOSTED_BUILD = Build(
 
 _KOKORO_JOB_NAME_TO_BUILD_MAP = {
     "tensorflow/xla/macos/github_continuous/cpu_py39_full": _MACOS_X86_BUILD,
+    "tensorflow/xla/macos/cpu/cpu_py39_full": _MACOS_ARM64_BUILD,
     "xla-linux-x86-cpu": _CPU_X86_SELF_HOSTED_BUILD,
     "xla-linux-arm64-cpu": _CPU_ARM64_SELF_HOSTED_BUILD,
     "xla-linux-x86-gpu-t4": _GPU_T4_SELF_HOSTED_BUILD,

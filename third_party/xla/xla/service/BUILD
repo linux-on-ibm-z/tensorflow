@@ -364,6 +364,18 @@ xla_cc_test(
 )
 
 cc_library(
+    name = "collective_permute_key",
+    srcs = ["collective_permute_key.cc"],
+    hdrs = ["collective_permute_key.h"],
+    deps = [
+        ":hlo_domain_map",
+        "//xla:xla_data_proto_cc",
+        "//xla/hlo/ir:hlo",
+        "@com_google_absl//absl/log",
+    ],
+)
+
+cc_library(
     name = "collective_conflict_analysis",
     srcs = ["collective_conflict_analysis.cc"],
     hdrs = ["collective_conflict_analysis.h"],
@@ -1272,6 +1284,7 @@ xla_cc_test(
         "//xla:shape_util",
         "//xla:util",
         "//xla/hlo/ir:hlo",
+        "//xla/hlo/testlib:test_helpers",
         "//xla/hlo/transforms/collectives:async_collective_creator",
         "//xla/tests:hlo_test_base",
         "//xla/tests:xla_internal_test_main",
@@ -2929,21 +2942,20 @@ cc_library(
         ":call_inliner",
         ":collective_ops_utils",
         ":constant_value",
-        ":hlo_buffer",
         ":hlo_creation_utils",
         ":hlo_cse",
-        ":hlo_value",
         ":pattern_matcher",
+        ":scheduling_annotations_util",
         ":value_range",
         ":while_loop_constant_sinking",
         "//xla:comparison_util",
         "//xla:literal",
         "//xla:literal_util",
         "//xla:shape_util",
+        "//xla:side_effect_util",
         "//xla:status_macros",
         "//xla:util",
         "//xla:xla_data_proto_cc",
-        "//xla/hlo/analysis:hlo_alias_analysis",
         "//xla/hlo/analysis:while_loop_analysis",
         "//xla/hlo/evaluator:hlo_evaluator",
         "//xla/hlo/ir:hlo",
@@ -2960,8 +2972,6 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@local_tsl//tsl/platform:errors",
-        "@local_tsl//tsl/platform:statusor",
     ],
 )
 
@@ -2969,6 +2979,7 @@ xla_cc_test(
     name = "while_loop_unroller_test",
     srcs = ["while_loop_unroller_test.cc"],
     deps = [
+        ":scheduling_annotations_util",
         ":while_loop_unroller",
         "//xla:literal",
         "//xla/hlo/ir:hlo",
@@ -2977,11 +2988,11 @@ xla_cc_test(
         "//xla/tests:literal_test_util",
         "//xla/tests:xla_internal_test_main",
         "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest",
-        "@local_tsl//tsl/platform:statusor",
     ],
 )
 
@@ -6561,6 +6572,17 @@ xla_cc_test(
         "//xla:shape_util",
         "//xla/hlo/ir:hlo_sharding",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "scheduling_annotations_util",
+    srcs = ["scheduling_annotations_util.cc"],
+    hdrs = ["scheduling_annotations_util.h"],
+    deps = [
+        "//xla:side_effect_util",
+        "//xla/hlo/ir:hlo",
+        "@com_google_absl//absl/strings",
     ],
 )
 

@@ -26,7 +26,6 @@ limitations under the License.
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "xla/hlo/ir/collective_device_list.h"
 #include "xla/hlo/ir/hlo_module.h"
 #include "xla/pjrt/pjrt_client.h"
 #include "xla/service/backend.h"
@@ -43,10 +42,10 @@ namespace xla::gpu {
 class CollectivePerfTableGen {
  public:
   struct StepSpec {
-    int64_t start = 0;
-    int64_t stop = -1;
+    int64_t start = 1024;
+    int64_t stop = 2ll * 1024 * 1024 * 1024;
     int64_t step = 0;
-    int64_t factor = 0;
+    int64_t factor = 2;
   };
 
   enum class CollectiveType {
@@ -61,14 +60,18 @@ class CollectivePerfTableGen {
 
     // Search space.
     StepSpec tensor_size_bytes_spec;
-    std::vector<CollectiveType> collective_types;
-    std::vector<IotaReplicaGroupList> replica_groups_list;
+    std::vector<CollectiveType> collective_types = {
+        CollectiveType::ALL_REDUCE,
+        CollectiveType::ALL_GATHER,
+        CollectiveType::REDUCE_SCATTER,
+    };
+    std::vector<std::string> replica_groups_list;
 
     // Execution opts.
     bool dry_run = false;
     std::string output = std::string(kStdout);
     std::string coordinator_address = "";
-    absl::Duration connection_timeout = absl::Seconds(60);
+    absl::Duration connection_timeout = absl::Seconds(600);
     uint16_t num_nodes = 1;
     uint16_t task_id = 0;
   };
@@ -88,6 +91,11 @@ class CollectivePerfTableGen {
   // .pbtx or .pb it will dump a proto to that file, merging the previous
   // content (but not deduplicating).
   absl::Status Dump(const DeviceHloInstructionProfiles& table);
+
+  // Merges all of the profiled files under `merge_path`, deduplicates them
+  // based on fingerprint and writes them to a single
+  // `DeviceHloInstructionProfiles` proto.
+  DeviceHloInstructionProfiles Merge(absl::string_view merge_path);
 
  private:
   explicit CollectivePerfTableGen(Config config, PjRtEnvironment&& pjrt_env)
