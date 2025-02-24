@@ -78,9 +78,7 @@ tsl::AsyncValueRef<Thunk::ExecuteEvent> RngGetAndUpdateStateThunk::Execute(
   uint64_t low = absl::Int128Low64(state_);
   uint64_t high = absl::Int128High64(state_);
   uint64_t* data = static_cast<uint64_t*>(state_data.opaque());
-  #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-    static_assert(ABSL_IS_BIG_ENDIAN, "Big endian not supported");
-  #endif
+  static_assert(ABSL_IS_LITTLE_ENDIAN, "Big endian not supported");
   std::memcpy(data, &low, sizeof(low));
   std::memcpy(data + 1, &high, sizeof(high));
 
