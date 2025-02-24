@@ -27,6 +27,7 @@ package(
 
 cc_library(
     name = "compiled_opt_lib",
+    testonly = True,
     srcs = ["compiled_opt_lib.cc"],
     hdrs = ["compiled_opt_lib.h"],
     deps = [
@@ -63,7 +64,6 @@ cc_library(
         "//xla/service/gpu/transforms:collective_permute_valid_iteration_annotator",
         "//xla/service/gpu/transforms:scatter_expander",
         "//xla/service/gpu/transforms:scatter_slice_simplifier",
-        "//xla/service/spmd:schedule_aware_collective_ops_cse",
         "//xla/service/spmd/shardy:shardy_xla_pass",
         "//xla/stream_executor:platform",
         "//xla/stream_executor:stream_executor_h",
@@ -217,7 +217,6 @@ lit_test_suite(
             "tests/gpu_hlo.hlo",
             "tests/gpu_hlo_backend.hlo",
             "tests/gpu_hlo_buffers.hlo",
-            "tests/gpu_hlo_collective_cse.hlo",
             "tests/gpu_hlo_llvm.hlo",
             "tests/gpu_hlo_pass.hlo",
             "tests/gpu_hlo_ptx.hlo",

@@ -86,8 +86,8 @@ limitations under the License.
 #include "xla/backends/gpu/codegen/triton/compilation_pipeline.h"
 #include "xla/backends/gpu/codegen/triton/emitter_helpers.h"
 #include "xla/backends/gpu/codegen/triton/fusion_emitter_legacy_matmul.h"
-#include "xla/backends/gpu/codegen/triton/passes.h"
-#include "xla/backends/gpu/codegen/triton/xla_triton_ops.h"
+#include "xla/backends/gpu/codegen/triton/ir/triton_xla_ops.h"
+#include "xla/backends/gpu/codegen/triton/transforms/passes.h"
 #include "xla/codegen/emitter_loc_op_builder.h"
 #include "xla/codegen/emitters/elemental_hlo_to_mlir.h"
 #include "xla/codegen/emitters/ir/xla_ops.h"
@@ -120,12 +120,11 @@ limitations under the License.
 #include "xla/stream_executor/gpu/tma_metadata.h"
 #include "xla/stream_executor/launch_dim.h"
 #include "xla/tools/hlo_decomposer.h"
+#include "xla/tsl/platform/statusor.h"
 #include "xla/util.h"
 #include "xla/xla.pb.h"
 #include "xla/xla_data.pb.h"
-#include "tsl/platform/errors.h"
 #include "tsl/platform/path.h"
-#include "tsl/platform/statusor.h"
 #include "triton/Conversion/TritonGPUToLLVM/Passes.h"
 #include "triton/Conversion/TritonToTritonGPU/TritonToTritonGPUPass.h"
 #include "triton/Dialect/Triton/IR/Dialect.h"
@@ -938,6 +937,9 @@ absl::Status EmitGeneric(mlir::OpBuilder builder,
                          const HloFusionInstruction* fusion,
                          mlir::triton::FuncOp fn,
                          const BlockLevelParameters& block_level_parameters) {
+  if (block_level_parameters.output_tile_sizes.size() != 1) {
+    return absl::UnimplementedError("Codegen only supports 1 root right now");
+  }
   const HloComputation* computation = fusion->fused_instructions_computation();
   SymbolicTileAnalysisOrError symbolic_tile_analysis_or =
       SymbolicTileAnalysis::AnalyzeComputation(
@@ -961,7 +963,7 @@ absl::Status EmitGeneric(mlir::OpBuilder builder,
 
   TF_ASSIGN_OR_RETURN(TiledHloComputation tiled_hlo_computation,
                       symbolic_tile_analysis.ComputeTiledHloInstructions(
-                          block_level_parameters.output_tile_sizes,
+                          block_level_parameters.output_tile_sizes[0],
                           /*constraints_are_known_satisfied=*/false,
                           /*compute_all_tile_offset_indexing_maps=*/true));
   VLOG(3) << "Tiled HLO computation: " << tiled_hlo_computation.ToString();
@@ -1241,11 +1243,6 @@ absl::StatusOr<TritonWrapperResult> CompileTritonToLLVM(
   const auto& cc = device_info.gpu_compute_capability();
   std::string arch_name =
       std::visit([](auto& cc) { return cc.ToString(); }, cc);
-  if (arch_name == "12.0") {
-    LOG(WARNING) << "Triton does not support sm_120 yet. Passing CC 10.0 to "
-                    "avoid spurious \"unsupported conversion\" errors";
-    arch_name = "10.0";
-  }
   if (std::holds_alternative<se::CudaComputeCapability>(cc)) {
     auto ccCuda = std::get<se::CudaComputeCapability>(cc);
     if (!ccCuda.IsAtLeastAmpere()) {
@@ -1315,7 +1312,7 @@ absl::StatusOr<TritonWrapperResult> CompileTritonToLLVM(
   }
   // Triton generates pointers to the global address space, while XLA needs a
   // kernel signature with pointers to the generic address space.
-  pm.addPass(CreateGeneralizeKernelSignaturePass());
+  pm.addPass(mlir::triton::xla::CreateGeneralizeKernelSignaturePass());
   // llvm::Linker::linkModules() segfaults if we don't strip locations.
   pm.addPass(mlir::createStripDebugInfoPass());
 

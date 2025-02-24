@@ -345,18 +345,6 @@ class PjRtStreamExecutorClient : public PjRtClient {
   absl::StatusOr<std::unique_ptr<PjRtBuffer>> CreateErrorBuffer(
       absl::Status error, const Shape& shape, PjRtMemorySpace* memory) override;
 
-  absl::StatusOr<std::unique_ptr<PjRtClient::AsyncHostToDeviceTransferManager>>
-  CreateBuffersForAsyncHostToDevice(absl::Span<const Shape> shapes,
-                                    PjRtDevice* device) override {
-    return Unimplemented("Async transfer to buffers not implemented");
-  };
-
-  absl::StatusOr<std::unique_ptr<PjRtClient::AsyncHostToDeviceTransferManager>>
-  CreateBuffersForAsyncHostToDevice(absl::Span<const Shape> shapes,
-                                    PjRtMemorySpace* memory_space) override {
-    return Unimplemented("Async transfer to buffers not implemented");
-  };
-
   absl::StatusOr<std::unique_ptr<PjRtBuffer>> BufferFromHostBuffer(
       const void* data, PrimitiveType type, absl::Span<int64_t const> dims,
       std::optional<absl::Span<int64_t const>> byte_strides,
@@ -371,11 +359,6 @@ class PjRtStreamExecutorClient : public PjRtClient {
   MakeCrossHostReceiveBuffers(absl::Span<const Shape> shapes,
                               PjRtDevice* device,
                               PjRtCrossHostRecvNotifier notifier) override;
-
-  absl::StatusOr<std::vector<std::unique_ptr<PjRtBuffer>>>
-  MakeCrossHostReceiveBuffersForGather(
-      absl::Span<const Shape> shapes, std::vector<GatherDetails> gather_details,
-      PjRtDevice* device, PjRtCrossHostRecvNotifier notifier) override;
 
   absl::StatusOr<std::unique_ptr<PjRtBuffer>> CreateViewOfDeviceBuffer(
       void* device_ptr, const Shape& shape, PjRtMemorySpace* memory_space,
@@ -414,8 +397,7 @@ class PjRtStreamExecutorClient : public PjRtClient {
   virtual absl::Status EnqueueCrossHostReceive(
       absl::Span<const std::unique_ptr<PjRtBuffer>> buffers,
       std::shared_ptr<BufferSequencingEvent> definition_event,
-      PjRtCrossHostRecvNotifier notifier,
-      std::optional<std::vector<GatherDetails>> gather_details) const {
+      PjRtCrossHostRecvNotifier notifier) const {
     return Unimplemented("Cross host receives not implemented.");
   }
 
@@ -424,16 +406,6 @@ class PjRtStreamExecutorClient : public PjRtClient {
       PjRtBuffer::RemoteSendCallback on_done) const {
     on_done(Unimplemented("Cross host sends not implemented."),
             /*sends_were_enqueued=*/false);
-  }
-
-  virtual void CopyToRemoteDeviceScattered(
-      PjRtBuffer* buffer, std::vector<std::string> serialized_descriptors,
-      std::vector<PjRtBuffer::RemoteSendCallback> callbacks,
-      const PjRtBuffer::ScatterDetails& scatter_details) const {
-    for (const auto& cb : callbacks) {
-      cb(Unimplemented("Scattered cross host sends not implemented."),
-         /*sends_were_enqueued=*/false);
-    }
   }
 
   virtual PjRtFuture<> CopyRawSubBufferToHost(PjRtBuffer* buffer,
@@ -633,7 +605,8 @@ class PjRtStreamExecutorBuffer : public PjRtBuffer {
     // Confirms that the buffer was successfully donated to an execution.
     // Only valid for holds of type kDonation. Causes the buffer to become
     // invalid.
-    void ConfirmDonation();
+    // TODO(parkers): Only allow safe releases.
+    void ConfirmDonation(bool unsafe_release);
 
     // Adds the held device buffers in order to 'iterator'. Used to add the
     // buffers to an ExecutionInput. We require but do not verify that
@@ -767,11 +740,6 @@ class PjRtStreamExecutorBuffer : public PjRtBuffer {
   void CopyToRemoteDevice(PjRtFuture<std::string> serialized_descriptor,
                           RemoteSendCallback on_done) override;
 
-  void CopyToRemoteDeviceScattered(
-      PjRtFuture<std::vector<std::string>> serialized_descriptors,
-      std::vector<RemoteSendCallback> callbacks,
-      const ScatterDetails& scatter_details) override;
-
   PjRtFuture<> GetReadyFuture() override;
 
   bool IsOnCpu() const override;
@@ -831,7 +799,7 @@ class PjRtStreamExecutorBuffer : public PjRtBuffer {
   // Drops a donation hold and makes *this invalid for further use. Does a
   // sanity check that buffer==device_buffer_. Called after device_buffer_ was
   // successfully donated to an execution.
-  void ConfirmDonation(TrackedDeviceBuffer* device_buffer);
+  void ConfirmDonation(TrackedDeviceBuffer* device_buffer, bool unsafe_release);
 
   // Drops a hold without taking any other action. Does a sanity check that
   // buffer==device_buffer_ or device_buffer_==nullptr.

@@ -19,7 +19,7 @@ xla_cc_test(
         ":cpu_client",
         "//xla/pjrt:pjrt_client_test_common",
         "//xla/tsl/platform:test_main",
-        "@com_google_googletest//:gtest_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 
@@ -167,6 +167,7 @@ cc_library(
         "//xla/pjrt:layout_mode",
         "//xla/pjrt:mlir_to_hlo",
         "//xla/pjrt:pjrt_client",
+        "//xla/pjrt:pjrt_client_utils",
         "//xla/pjrt:pjrt_common",
         "//xla/pjrt:pjrt_compiler",
         "//xla/pjrt:pjrt_executable",

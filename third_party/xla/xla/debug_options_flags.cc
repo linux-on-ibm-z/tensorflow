@@ -76,7 +76,7 @@ DebugOptions DefaultDebugOptionsIgnoringFlags() {
   opts.set_xla_dump_include_timestamp(false);
   opts.set_xla_dump_max_hlo_modules(-1);
   opts.set_xla_dump_module_metadata(false);
-  opts.set_xla_dump_hlo_as_long_text(false);
+  opts.set_xla_dump_hlo_as_long_text(true);
   opts.set_xla_dump_large_constants(false);
   opts.set_xla_dump_enable_mlir_pretty_form(true);
   opts.set_xla_gpu_unsupported_annotate_with_emitter_loc(false);
@@ -210,6 +210,7 @@ DebugOptions DefaultDebugOptionsIgnoringFlags() {
   opts.set_xla_gpu_unsupported_enable_generic_triton_emitter_for_gemms(false);
   opts.set_xla_gpu_enable_cudnn_int8x32_convolution_reordering(true);
   opts.set_xla_gpu_triton_gemm_any(true);
+  opts.set_xla_gpu_unsupported_force_triton_gemm(false);
   opts.set_xla_gpu_verify_triton_fusion_numerics(false);
 
   // Moving reduce-scatter out of while loops can increase memory footprint, so
@@ -310,6 +311,7 @@ DebugOptions DefaultDebugOptionsIgnoringFlags() {
   opts.set_xla_gpu_unsupported_enable_ragged_all_to_all_decomposer(false);
   opts.set_xla_gpu_experimental_pack_dot_operands_along_k_dimension(true);
   opts.set_xla_unsupported_crash_on_hlo_pass_fix_max_iterations(false);
+  opts.set_xla_hlo_pass_fix_detect_cycles(false);
   opts.set_xla_gpu_experimental_enable_sync_collective_combining(false);
   return opts;
 }
@@ -2236,6 +2238,11 @@ void MakeDebugOptionsFlags(std::vector<tsl::Flag>* flag_list,
       debug_options->xla_unsupported_crash_on_hlo_pass_fix_max_iterations(),
       "Crash if HloPassFix can not converge after a fixed number of "
       "iterations."));
+  flag_list->push_back(tsl::Flag(
+      "xla_hlo_pass_fix_detect_cycles",
+      bool_setter_for(&DebugOptions::set_xla_hlo_pass_fix_detect_cycles),
+      debug_options->xla_hlo_pass_fix_detect_cycles(),
+      "Perform hash-based cycle detection in fixed-point loops."));
   flag_list->push_back(tsl::Flag(
       "xla_gpu_experimental_enable_sync_collective_combining",
       bool_setter_for(

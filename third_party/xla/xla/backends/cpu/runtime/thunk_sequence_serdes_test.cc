@@ -61,6 +61,7 @@ limitations under the License.
 #include "xla/literal_util.h"
 #include "xla/service/buffer_assignment.h"
 #include "xla/service/collective_ops_utils.h"
+#include "xla/service/hlo.pb.h"
 #include "xla/shape.h"
 #include "xla/shape_util.h"
 #include "xla/stream_executor/launch_dim.h"
@@ -1362,6 +1363,9 @@ class ThunkSequenceSerdesTest : public ::testing::Test {
         return VerifyConvolutionThunkEquality(
             tsl::down_cast<const ConvolutionThunk&>(thunk_1),
             tsl::down_cast<const ConvolutionThunk&>(thunk_2));
+      case Thunk::Kind::kOneDnnFusion:
+        CHECK(false) << "Unsupported OneDNN fusion thunk type";
+        return false;
     }
 
     return true;

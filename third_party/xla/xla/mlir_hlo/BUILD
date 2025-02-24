@@ -211,6 +211,7 @@ gentbl_cc_library(
 cc_library(
     name = "deallocation_passes",
     srcs = [
+        "deallocation/transforms/buffer_deallocation.cc",
         "deallocation/transforms/buffer_reuse.cc",
     ],
     hdrs = [
@@ -221,9 +222,11 @@ cc_library(
         ":deallocation_passes_inc_gen",
         ":deallocation_utils",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:AllocationOpInterface",
         "@llvm-project//mlir:Analysis",
         "@llvm-project//mlir:ArithDialect",
         "@llvm-project//mlir:BufferizationDialect",
+        "@llvm-project//mlir:BufferizationTransforms",
         "@llvm-project//mlir:ControlFlowInterfaces",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
@@ -1113,6 +1116,7 @@ cc_library(
         "@stablehlo//:stablehlo_ops",
         "@stablehlo//:stablehlo_ops_inc_gen",
         "@stablehlo//:stablehlo_passes",
+        "@stablehlo//:stablehlo_passes_optimization",
         "@stablehlo//:stablehlo_type_inference",
     ],
 )
