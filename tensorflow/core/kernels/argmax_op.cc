@@ -55,15 +55,21 @@ class ArgOp : public OpKernel {
                     "dim must be a scalar, but received tensor of shape: ",
                     dimension.shape().DebugString())));
 
-    const int32_t dim = internal::SubtleMustCopy(dimension.scalar<int32_t>()());
+    const int64_t dim =
+        dimension.dtype() == DT_INT64
+            ? internal::SubtleMustCopy(dimension.scalar<int64_t>()())
+            : internal::SubtleMustCopy(dimension.scalar<int32_t>()());
     const int input_dims = input.dims();
 
-    int axis = dim < 0 ? dim + input_dims : dim;
+    const int64_t axis64 = dim < 0 ? dim + input_dims : dim;
 
-    OP_REQUIRES(context, FastBoundsCheck(axis, input_dims),
+    OP_REQUIRES(context, FastBoundsCheck(axis64, input_dims),
                 absl::InvalidArgumentError(absl::StrCat(
                     "Expected dimension in the range [", -input_dims, ", ",
                     input_dims, "), but got ", dim)));
+
+    const int axis = static_cast<int>(axis64);
+
     OP_REQUIRES(context, input.dim_size(axis) > 0,
                 absl::InvalidArgumentError(
                     absl::StrCat("Reduction axis ", dim, " is empty in shape ",
